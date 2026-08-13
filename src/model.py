@@ -1,205 +1,153 @@
 """
-XGBoost Model for Remaining Useful Life (RUL) Prediction
-Trains gradient boosting regressor on turbofan engine sensor data
+Model Training for NASA C-MAPS FD001 Predictive Maintenance
+XGBoost-based Remaining Useful Life (RUL) prediction
 """
 
-import pandas as pd
 import numpy as np
-import joblib
+import pandas as pd
+import pickle
 from pathlib import Path
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error, r2_score
+from feature_engineering import prepare_features
 
 
-class RULPredictor:
+def train_model(data_path='data/'):
     """
-    Remaining Useful Life predictor using XGBoost.
+    Train XGBoost model for RUL prediction.
 
-    XGBoost is well-suited for this task due to:
-    - Robustness to feature interactions
-    - Built-in regularization to prevent overfitting
-    - Ability to capture non-linear degradation patterns
+    Steps:
+    1. Prepare features using feature engineering pipeline
+    2. Train XGBoost regressor with specified hyperparameters
+    3. Make predictions on test set
+    4. Calculate and display metrics (RMSE, R2)
+    5. Save model and scaler to models/ directory
+
+    Args:
+        data_path (str): Path to data directory
+
+    Returns:
+        tuple: (model, predictions, test_rul, feature_names)
+            - model: Trained XGBoost model
+            - predictions: Predictions on test set
+            - test_rul: True RUL values for test set
+            - feature_names: List of feature column names
     """
 
-    def __init__(
-        self,
-        n_estimators: int = 300,
-        max_depth: int = 6,
-        learning_rate: float = 0.05,
-        subsample: float = 0.8,
-        random_state: int = 42
-    ):
-        """
-        Initialize XGBoost regressor with optimized hyperparameters.
+    print("\n" + "="*60)
+    print("MODEL TRAINING")
+    print("="*60 + "\n")
 
-        Args:
-            n_estimators (int): Number of boosting rounds
-            max_depth (int): Maximum tree depth
-            learning_rate (float): Step size shrinkage to prevent overfitting
-            subsample (float): Fraction of samples used per tree
-            random_state (int): Random seed for reproducibility
-        """
-        self.model = XGBRegressor(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            learning_rate=learning_rate,
-            subsample=subsample,
-            random_state=random_state,
-            objective='reg:squarederror',
-            n_jobs=-1,  # Use all CPU cores
-            verbosity=0
-        )
+    # ========================================================================
+    # STEP 1: Prepare Features
+    # ========================================================================
+    print("Step 1: Preparing features...")
+    X_train, y_train, X_test, test_rul, scaler, feature_names = prepare_features(data_path)
 
-        self.feature_columns = None
+    # ========================================================================
+    # STEP 2: Train XGBoost Regressor
+    # ========================================================================
+    print("\nStep 2: Training XGBoost model...")
 
-    def train(
-        self,
-        train_df: pd.DataFrame,
-        target_col: str = 'RUL',
-        exclude_cols: list = None
-    ) -> dict:
-        """
-        Train the RUL prediction model.
-
-        Args:
-            train_df (pd.DataFrame): Training data with features and RUL
-            target_col (str): Name of target column
-            exclude_cols (list): Columns to exclude from features
-
-        Returns:
-            dict: Training metrics (RMSE, R2)
-        """
-        if exclude_cols is None:
-            exclude_cols = ['unit_id', 'cycle', target_col]
-
-        # Separate features and target
-        self.feature_columns = [col for col in train_df.columns if col not in exclude_cols]
-        X_train = train_df[self.feature_columns]
-        y_train = train_df[target_col]
-
-        print("\n=== Training XGBoost Model ===\n")
-        print(f"Training samples: {len(X_train)}")
-        print(f"Features: {len(self.feature_columns)}")
-
-        # Train model
-        self.model.fit(X_train, y_train, verbose=False)
-
-        # Evaluate on training set
-        y_pred = self.model.predict(X_train)
-        rmse = np.sqrt(mean_squared_error(y_train, y_pred))
-        r2 = r2_score(y_train, y_pred)
-
-        print(f"\n✓ Training complete!")
-        print(f"  Training RMSE: {rmse:.2f} cycles")
-        print(f"  Training R² Score: {r2:.4f}\n")
-
-        return {
-            'rmse': rmse,
-            'r2': r2
-        }
-
-    def predict(self, df: pd.DataFrame) -> np.ndarray:
-        """
-        Predict RUL for new data.
-
-        Args:
-            df (pd.DataFrame): Feature data
-
-        Returns:
-            np.ndarray: Predicted RUL values
-        """
-        if self.feature_columns is None:
-            raise RuntimeError("Model must be trained before prediction")
-
-        X = df[self.feature_columns]
-        predictions = self.model.predict(X)
-
-        # RUL cannot be negative
-        predictions = np.maximum(predictions, 0)
-
-        return predictions
-
-    def predict_for_engines(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Predict RUL at the last observed cycle for each engine.
-
-        For test set evaluation, we need predictions at the final cycle only.
-
-        Args:
-            df (pd.DataFrame): Test data with multiple cycles per engine
-
-        Returns:
-            pd.DataFrame: Predictions at last cycle for each engine
-        """
-        # Get last cycle for each engine
-        last_cycles = df.groupby('unit_id').tail(1).copy()
-
-        # Predict RUL
-        last_cycles['predicted_RUL'] = self.predict(last_cycles)
-
-        return last_cycles[['unit_id', 'predicted_RUL']].reset_index(drop=True)
-
-    def save_model(self, filepath: str = "model.pkl"):
-        """
-        Save trained model to disk.
-
-        Args:
-            filepath (str): Path to save model
-        """
-        model_data = {
-            'model': self.model,
-            'feature_columns': self.feature_columns
-        }
-        joblib.dump(model_data, filepath)
-        print(f"✓ Model saved to {filepath}")
-
-    def load_model(self, filepath: str = "model.pkl"):
-        """
-        Load trained model from disk.
-
-        Args:
-            filepath (str): Path to model file
-        """
-        if not Path(filepath).exists():
-            raise FileNotFoundError(f"Model file not found: {filepath}")
-
-        model_data = joblib.load(filepath)
-        self.model = model_data['model']
-        self.feature_columns = model_data['feature_columns']
-
-        print(f"✓ Model loaded from {filepath}")
-
-
-if __name__ == "__main__":
-    # Example training pipeline
-    from data_loader import CMAPSDataLoader
-    from feature_engineering import FeatureEngineer
-
-    print("\n" + "="*50)
-    print("  NASA C-MAPS RUL Prediction - Training Pipeline")
-    print("="*50)
-
-    # Load data
-    loader = CMAPSDataLoader()
-    train_df = loader.load_train_data()
-
-    # Engineer features
-    engineer = FeatureEngineer()
-    train_processed = engineer.fit_transform(train_df)
-
-    # Train model
-    predictor = RULPredictor(
+    model = XGBRegressor(
         n_estimators=300,
         max_depth=6,
         learning_rate=0.05,
-        subsample=0.8
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        objective='reg:squarederror',
+        n_jobs=-1
     )
 
-    metrics = predictor.train(train_processed)
+    print(f"\nModel hyperparameters:")
+    print(f"  - n_estimators: 300")
+    print(f"  - max_depth: 6")
+    print(f"  - learning_rate: 0.05")
+    print(f"  - subsample: 0.8")
+    print(f"  - colsample_bytree: 0.8")
+    print(f"  - random_state: 42")
+
+    print(f"\nTraining model on {X_train.shape[0]} samples with {X_train.shape[1]} features...")
+    model.fit(X_train, y_train, verbose=False)
+    print(f"✓ Training complete!")
+
+    # ========================================================================
+    # STEP 3: Make Predictions
+    # ========================================================================
+    print(f"\nStep 3: Making predictions on test set...")
+
+    # Get predictions for all test cycles
+    all_predictions = model.predict(X_test)
+    all_predictions = np.maximum(all_predictions, 0)  # Ensure non-negative
+
+    # Load test data to get last cycle per engine
+    from data_loader import load_data
+    _, test_df, _ = load_data(data_path)
+
+    # Get last cycle prediction for each engine
+    predictions = []
+    current_idx = 0
+    for unit_id in sorted(test_df['unit_id'].unique()):
+        unit_mask = test_df['unit_id'] == unit_id
+        unit_cycle_count = unit_mask.sum()
+
+        # Get the last prediction for this unit
+        last_prediction = all_predictions[current_idx + unit_cycle_count - 1]
+        predictions.append(last_prediction)
+
+        current_idx += unit_cycle_count
+
+    predictions = np.array(predictions)
+
+    print(f"✓ Generated {len(predictions)} predictions (one per engine)")
+
+    # ========================================================================
+    # STEP 4: Calculate Metrics
+    # ========================================================================
+    print(f"\nStep 4: Calculating metrics...")
+
+    rmse = np.sqrt(mean_squared_error(test_rul, predictions))
+    r2 = r2_score(test_rul, predictions)
+
+    # ========================================================================
+    # STEP 5: Save Model and Scaler
+    # ========================================================================
+    print(f"\nStep 5: Saving model and scaler...")
+
+    # Create models directory if it doesn't exist
+    models_dir = Path('models')
+    models_dir.mkdir(exist_ok=True)
 
     # Save model
-    predictor.save_model("model.pkl")
+    model_path = models_dir / 'xgboost_model.pkl'
+    with open(model_path, 'wb') as f:
+        pickle.dump(model, f)
+    print(f"✓ Model saved to {model_path}")
 
-    print("="*50)
-    print("✓ Training pipeline complete!")
-    print("="*50 + "\n")
+    # Save scaler
+    scaler_path = models_dir / 'scaler.pkl'
+    with open(scaler_path, 'wb') as f:
+        pickle.dump(scaler, f)
+    print(f"✓ Scaler saved to {scaler_path}")
+
+    # ========================================================================
+    # Display Results
+    # ========================================================================
+    print("\n" + "="*60)
+    print("MODEL TRAINING COMPLETE")
+    print("="*60)
+    print(f"RMSE: {rmse:.2f} cycles")
+    print(f"R2 Score: {r2:.2f}")
+    print("="*60 + "\n")
+
+    return model, predictions, test_rul, feature_names
+
+
+if __name__ == "__main__":
+    # Train the model
+    model, predictions, test_rul, feature_names = train_model('data/')
+
+    print("\n--- Model Training Test Complete ---")
+    print(f"Model type: {type(model).__name__}")
+    print(f"Number of features used: {len(feature_names)}")

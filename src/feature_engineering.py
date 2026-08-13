@@ -1,201 +1,182 @@
 """
-Feature Engineering for Turbofan Engine Degradation Prediction
-Removes uninformative sensors, adds temporal features, and normalizes data
+Feature Engineering for NASA C-MAPS FD001 Dataset
+Simple function-based approach for preparing features for modeling
 """
 
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from typing import Optional
+from data_loader import load_data
 
 
-class FeatureEngineer:
+def prepare_features(data_path='data/'):
     """
-    Processes raw sensor data into ML-ready features.
+    Complete feature engineering pipeline for C-MAPS dataset.
 
     Steps:
-    1. Remove constant/low-variance sensors
-    2. Add rolling statistics (temporal degradation patterns)
-    3. Normalize features to [0, 1] range
+    1. Load raw data
+    2. Remove low-variance sensors
+    3. Add rolling statistics (mean and std over 5 and 10 cycles)
+    4. Normalize features
+
+    Args:
+        data_path (str): Path to data directory containing dataset files
+
+    Returns:
+        tuple: (X_train, y_train, X_test, test_rul, scaler, feature_names)
+            - X_train: Training features (numpy array)
+            - y_train: Training targets (numpy array)
+            - X_test: Test features (numpy array)
+            - test_rul: True RUL values for test set (numpy array)
+            - scaler: Fitted MinMaxScaler
+            - feature_names: List of feature column names
     """
 
-    def __init__(self, variance_threshold: float = 0.01):
-        """
-        Initialize feature engineer.
+    print("\n" + "="*60)
+    print("FEATURE ENGINEERING PIPELINE")
+    print("="*60 + "\n")
 
-        Args:
-            variance_threshold (float): Sensors with variance below this are removed
-        """
-        self.variance_threshold = variance_threshold
-        self.scaler = MinMaxScaler()
-        self.selected_features = None
-        self.feature_columns = None
+    # ========================================================================
+    # STEP 1: Load Data
+    # ========================================================================
+    print("Step 1: Loading data...")
+    train_df, test_df, test_rul_df = load_data(data_path)
 
-    def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Fit feature engineering pipeline and transform training data.
+    # ========================================================================
+    # STEP 2: Calculate Variance and Remove Low-Variance Sensors
+    # ========================================================================
+    print("\nStep 2: Removing low-variance sensors...")
 
-        Args:
-            df (pd.DataFrame): Raw training data with RUL
+    # Get all sensor and operational setting columns
+    sensor_cols = [col for col in train_df.columns
+                   if col.startswith('sensor_') or col.startswith('op_setting_')]
 
-        Returns:
-            pd.DataFrame: Engineered features ready for modeling
-        """
-        df = df.copy()
+    # Calculate variance on training data
+    variances = train_df[sensor_cols].var()
 
-        print("\n=== Feature Engineering ===\n")
+    # Remove sensors with variance < 0.01
+    variance_threshold = 0.01
+    removed_sensors = variances[variances < variance_threshold].index.tolist()
+    kept_sensors = variances[variances >= variance_threshold].index.tolist()
 
-        # Step 1: Remove uninformative sensors
-        df = self._remove_constant_features(df)
+    print(f"\nRemoved sensors (variance < {variance_threshold}):")
+    for sensor in removed_sensors:
+        print(f"  - {sensor} (variance: {variances[sensor]:.6f})")
 
-        # Step 2: Add rolling window features
-        df = self._add_rolling_features(df)
+    print(f"\nKept sensors ({len(kept_sensors)} total):")
+    for sensor in kept_sensors:
+        print(f"  - {sensor} (variance: {variances[sensor]:.2f})")
 
-        # Step 3: Normalize features
-        df = self._normalize_features(df, fit=True)
+    # Filter to kept sensors only
+    train_df = train_df[['unit_id', 'cycle'] + kept_sensors + ['RUL']]
+    test_df = test_df[['unit_id', 'cycle'] + kept_sensors]
 
-        print(f"✓ Final feature set: {len(self.feature_columns)} features")
-        print(f"  Total samples: {len(df)}\n")
+    # ========================================================================
+    # STEP 3: Add Rolling Statistics
+    # ========================================================================
+    print(f"\nStep 3: Adding rolling statistics...")
 
-        return df
+    # Apply rolling features to training data
+    train_df = _add_rolling_features(train_df, kept_sensors)
 
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Transform test data using fitted pipeline.
+    # Apply rolling features to test data
+    test_df = _add_rolling_features(test_df, kept_sensors)
 
-        Args:
-            df (pd.DataFrame): Raw test data
+    print(f"✓ Added rolling features (5 and 10 cycle windows)")
+    print(f"  - Rolling mean 5 cycles")
+    print(f"  - Rolling mean 10 cycles")
+    print(f"  - Rolling std 5 cycles")
+    print(f"  - Rolling std 10 cycles")
 
-        Returns:
-            pd.DataFrame: Engineered features
-        """
-        if self.selected_features is None:
-            raise RuntimeError("Must call fit_transform() before transform()")
+    # ========================================================================
+    # STEP 4: Prepare Feature Matrices
+    # ========================================================================
+    print(f"\nStep 4: Preparing feature matrices...")
 
-        df = df.copy()
+    # Get all feature columns (exclude unit_id, cycle, RUL)
+    feature_cols = [col for col in train_df.columns
+                    if col not in ['unit_id', 'cycle', 'RUL']]
 
-        # Apply same transformations as training
-        df = df[['unit_id', 'cycle'] + self.selected_features]
-        df = self._add_rolling_features(df)
-        df = self._normalize_features(df, fit=False)
+    # Extract features and target
+    X_train = train_df[feature_cols].values
+    y_train = train_df['RUL'].values
+    X_test = test_df[feature_cols].values
+    test_rul = test_rul_df['RUL'].values
 
-        return df
+    print(f"✓ X_train shape: {X_train.shape}")
+    print(f"✓ y_train shape: {y_train.shape}")
+    print(f"✓ X_test shape: {X_test.shape}")
+    print(f"✓ test_rul shape: {test_rul.shape}")
 
-    def _remove_constant_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Remove sensors with near-zero variance (provide no information).
+    # ========================================================================
+    # STEP 5: Normalize Features (Fit on Train, Transform Both)
+    # ========================================================================
+    print(f"\nStep 5: Normalizing features...")
 
-        Args:
-            df (pd.DataFrame): Input data
+    scaler = MinMaxScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
 
-        Returns:
-            pd.DataFrame: Data with constant features removed
-        """
-        # Identify sensor and operational setting columns
-        feature_cols = [col for col in df.columns if col.startswith('sensor_') or col.startswith('op_setting_')]
+    print(f"✓ Fitted MinMaxScaler on training data")
+    print(f"✓ Transformed both train and test sets to [0, 1] range")
 
-        # Calculate variance for each feature
-        variances = df[feature_cols].var()
+    # ========================================================================
+    # Final Summary
+    # ========================================================================
+    print("\n" + "="*60)
+    print("FEATURE ENGINEERING COMPLETE")
+    print("="*60)
+    print(f"Final feature count: {len(feature_cols)}")
+    print(f"Training samples: {X_train.shape[0]}")
+    print(f"Test samples: {X_test.shape[0]}")
+    print("="*60 + "\n")
 
-        # Keep only features with variance above threshold
-        informative_features = variances[variances > self.variance_threshold].index.tolist()
+    return X_train, y_train, X_test, test_rul, scaler, feature_cols
 
-        # Store selected features
-        self.selected_features = informative_features
 
-        print(f"✓ Removed {len(feature_cols) - len(informative_features)} low-variance features")
-        print(f"  Kept {len(informative_features)} informative sensors")
+def _add_rolling_features(df, sensor_cols):
+    """
+    Add rolling mean and std features for each sensor.
 
-        # Keep identification columns + selected features + target
-        keep_cols = ['unit_id', 'cycle'] + informative_features
-        if 'RUL' in df.columns:
-            keep_cols.append('RUL')
+    Args:
+        df (pd.DataFrame): Input dataframe with unit_id and cycle columns
+        sensor_cols (list): List of sensor column names
 
-        return df[keep_cols]
+    Returns:
+        pd.DataFrame: Dataframe with rolling features added
+    """
+    df = df.copy()
 
-    def _add_rolling_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Add rolling mean and std features to capture degradation trends.
+    # For each kept sensor, calculate rolling statistics
+    for col in sensor_cols:
+        # Rolling mean 5 cycles
+        df[f'{col}_rolling_mean_5'] = df.groupby('unit_id')[col].transform(
+            lambda x: x.rolling(window=5, min_periods=1).mean()
+        )
 
-        Rolling statistics help the model learn temporal patterns in sensor drift.
+        # Rolling mean 10 cycles
+        df[f'{col}_rolling_mean_10'] = df.groupby('unit_id')[col].transform(
+            lambda x: x.rolling(window=10, min_periods=1).mean()
+        )
 
-        Args:
-            df (pd.DataFrame): Input data
+        # Rolling std 5 cycles
+        df[f'{col}_rolling_std_5'] = df.groupby('unit_id')[col].transform(
+            lambda x: x.rolling(window=5, min_periods=1).std()
+        )
+        df[f'{col}_rolling_std_5'] = df[f'{col}_rolling_std_5'].fillna(0)
 
-        Returns:
-            pd.DataFrame: Data with rolling features added
-        """
-        feature_cols = [col for col in df.columns if col.startswith('sensor_') or col.startswith('op_setting_')]
+        # Rolling std 10 cycles
+        df[f'{col}_rolling_std_10'] = df.groupby('unit_id')[col].transform(
+            lambda x: x.rolling(window=10, min_periods=1).std()
+        )
+        df[f'{col}_rolling_std_10'] = df[f'{col}_rolling_std_10'].fillna(0)
 
-        rolling_features = []
-        windows = [5, 10]  # 5 and 10 cycle windows
-
-        # Calculate rolling statistics per engine unit
-        for window in windows:
-            for col in feature_cols:
-                # Rolling mean
-                col_mean = f'{col}_rolling_mean_{window}'
-                df[col_mean] = df.groupby('unit_id')[col].transform(
-                    lambda x: x.rolling(window=window, min_periods=1).mean()
-                )
-                rolling_features.append(col_mean)
-
-                # Rolling std
-                col_std = f'{col}_rolling_std_{window}'
-                df[col_std] = df.groupby('unit_id')[col].transform(
-                    lambda x: x.rolling(window=window, min_periods=1).std()
-                )
-                # Fill NaN (occurs when std of single value)
-                df[col_std] = df[col_std].fillna(0)
-                rolling_features.append(col_std)
-
-        print(f"✓ Added {len(rolling_features)} rolling window features (windows: {windows})")
-
-        return df
-
-    def _normalize_features(self, df: pd.DataFrame, fit: bool = False) -> pd.DataFrame:
-        """
-        Normalize features to [0, 1] range using MinMaxScaler.
-
-        Args:
-            df (pd.DataFrame): Input data
-            fit (bool): If True, fit scaler on data; otherwise use existing scaler
-
-        Returns:
-            pd.DataFrame: Normalized data
-        """
-        # Identify all feature columns (exclude unit_id, cycle, RUL)
-        feature_cols = [col for col in df.columns if col not in ['unit_id', 'cycle', 'RUL']]
-
-        if fit:
-            df[feature_cols] = self.scaler.fit_transform(df[feature_cols])
-            self.feature_columns = feature_cols
-            print(f"✓ Normalized {len(feature_cols)} features to [0, 1] range")
-        else:
-            df[feature_cols] = self.scaler.transform(df[feature_cols])
-
-        return df
-
-    def get_feature_names(self) -> list[str]:
-        """
-        Get list of all engineered feature names.
-
-        Returns:
-            list: Feature column names
-        """
-        return self.feature_columns if self.feature_columns else []
+    return df
 
 
 if __name__ == "__main__":
-    # Example usage
-    from data_loader import CMAPSDataLoader
+    # Test the feature engineering pipeline
+    X_train, y_train, X_test, test_rul, scaler, feature_names = prepare_features('data/')
 
-    loader = CMAPSDataLoader()
-    train_df = loader.load_train_data()
-
-    engineer = FeatureEngineer()
-    train_processed = engineer.fit_transform(train_df)
-
-    print(f"Original columns: {train_df.shape[1]}")
-    print(f"Processed columns: {train_processed.shape[1]}")
-    print(f"\nSample features:\n{train_processed.head()}")
+    print(f"\n--- Feature Engineering Test Complete ---")
+    print(f"Feature names: {feature_names[:5]} ... ({len(feature_names)} total)")

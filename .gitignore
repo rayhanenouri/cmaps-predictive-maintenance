@@ -38,9 +38,11 @@ Thumbs.db
 # Model artifacts
 model.pkl
 *.model
+models/*.pkl
 
 # Plots
 *.png
 *.jpg
 !docs/*.png
 !docs/*.jpg
+results/*.png
