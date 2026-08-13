@@ -220,4 +220,4 @@ if __name__ == "__main__":
     print(f"Operational Settings: {features[:3]}")
     print(f"Sensors: {features[3:6]} ... {features[-3:]}")
 
-    print("\n✅ Data loading successful! Ready for feature engineering.\n")
+    print("\n Data loading successful! Ready for feature engineering.\n")
