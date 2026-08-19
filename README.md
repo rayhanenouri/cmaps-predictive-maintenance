@@ -26,6 +26,10 @@ This system implements a supervised regression model for turbofan engine remaini
 | Test engines | 100 |
 | Feature count | 55 |
 
+## Live Demo
+
+[Engine Health Monitor — Live Dashboard](https://cmaps-predictive-maintenance.streamlit.app)
+
 ## Results
 
 ![Predicted vs Actual RUL](docs/predicted_vs_actual.png)
@@ -74,7 +78,7 @@ cmaps-predictive-maintenance/
 ## Setup
 
 ```bash
-git clone https://github.com/rayhanenouri/cmaps-predictive-maintenance
+git clone https://cmaps-predictive-maintenance.streamlit.app
 cd cmaps-predictive-maintenance
 python -m venv .venv
 source .venv/bin/activate
