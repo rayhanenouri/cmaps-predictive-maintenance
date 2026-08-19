@@ -13,8 +13,7 @@ from feature_engineering import prepare_features
 
 def evaluate_model(data_path='data/'):
     """Evaluate trained model and generate plots.
-
-    Returns dict of evaluation metrics.
+       Returns dict of evaluation metrics.
     """
 
     print("\nmodel evaluation\n")
