@@ -8,6 +8,8 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.x-red)
 ![Dataset](https://img.shields.io/badge/Dataset-NASA_CMAPS-green)
 
+**Live Dashboard:** [cmaps-predictive-maintenance.streamlit.app](https://cmaps-predictive-maintenance.streamlit.app)
+
 ## Motivation
 
 During my aviation maintenance internship at Tunisair Technics, I worked alongside senior engineers on Airbus A320 and A330 systems. In the engine workshop, I observed CFM56 turbofan engines — the same engine family modeled in this dataset — during overhaul procedures. What struck me was how much maintenance scheduling still relied on fixed intervals rather than actual engine condition. This project is my attempt to understand and implement the data-driven alternative: predicting when an engine actually needs attention, not when the calendar says so.
