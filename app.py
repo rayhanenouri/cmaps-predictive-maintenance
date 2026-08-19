@@ -1,7 +1,7 @@
 """
-Aircraft Engine Health Monitoring Dashboard
-NASA C-MAPS Turbofan Predictive Maintenance
-Professional industrial dashboard for RUL prediction
+Engine Health Monitor
+Industrial MRO Dashboard - NASA C-MAPS Predictive Maintenance
+Design Reference: AVIATAR (Lufthansa Technik), Skywise (Airbus)
 """
 
 import streamlit as st
@@ -9,13 +9,11 @@ import pandas as pd
 import numpy as np
 import pickle
 import plotly.graph_objects as go
-import plotly.express as px
 from pathlib import Path
 import sys
 
 # Add src to path
 sys.path.append('src')
-
 from data_loader import load_data
 
 # ============================================================================
@@ -23,133 +21,266 @@ from data_loader import load_data
 # ============================================================================
 
 st.set_page_config(
-    page_title="Aircraft Engine Health Monitor",
-    page_icon="✈️",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Engine Health Monitor",
+    page_icon="✈",
+    layout="wide"
 )
 
 # ============================================================================
-# CUSTOM CSS - DARK PROFESSIONAL THEME
+# ENTERPRISE DESIGN SYSTEM - AEROSPACE MRO THEME
 # ============================================================================
 
 st.markdown("""
     <style>
-    /* Main background */
+    /* Remove all Streamlit default styling */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display: none;}
+
+    /* Color system */
+    :root {
+        --bg-primary: #050810;
+        --bg-surface: #0c1220;
+        --bg-sidebar: #080d18;
+        --border-color: #1e2d45;
+        --text-primary: #e8eef4;
+        --text-secondary: #6b7f94;
+        --accent-blue: #1e90ff;
+        --success: #00875a;
+        --warning: #ff8c00;
+        --danger: #d32f2f;
+        --grid-color: #0f1a2e;
+    }
+
+    /* Main app background */
+    .stApp {
+        background-color: var(--bg-primary) !important;
+    }
+
     .main {
-        background-color: #0e1117;
+        background-color: var(--bg-primary) !important;
+        padding: 0 !important;
     }
 
-    /* Title styling */
-    .main-title {
-        color: #ffffff;
-        font-size: 42px;
-        font-weight: 700;
-        text-align: center;
-        margin-bottom: 5px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    .block-container {
+        padding: 0 !important;
+        max-width: 100% !important;
     }
 
-    .sub-title {
-        color: #00d4ff;
+    /* Typography */
+    * {
+        font-family: system-ui, -apple-system, sans-serif !important;
+    }
+
+    /* Header - full width black bar */
+    .enterprise-header {
+        background-color: #000000;
+        padding: 16px 32px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .header-title {
+        color: var(--text-primary);
         font-size: 18px;
-        text-align: center;
-        margin-bottom: 30px;
-        font-weight: 400;
-    }
-
-    /* Health status badges */
-    .health-container {
-        text-align: center;
-        margin: 30px 0;
-    }
-
-    .health-badge {
-        display: inline-block;
-        padding: 20px 50px;
-        border-radius: 15px;
-        font-weight: bold;
-        font-size: 32px;
-        text-align: center;
-        margin: 10px 0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        text-transform: uppercase;
+        font-weight: 600;
         letter-spacing: 2px;
+        margin: 0;
     }
 
-    .badge-healthy {
-        background: linear-gradient(135deg, #00C853 0%, #00E676 100%);
-        color: white;
+    .system-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--success);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 1px;
     }
 
-    .badge-monitor {
-        background: linear-gradient(135deg, #FF9800 0%, #FFB74D 100%);
-        color: white;
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--success);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
     }
 
-    .badge-critical {
-        background: linear-gradient(135deg, #F44336 0%, #EF5350 100%);
-        color: white;
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
     }
 
-    .rul-value {
-        font-size: 52px;
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: var(--bg-sidebar) !important;
+        border-right: 1px solid var(--border-color) !important;
+        padding: 24px 16px !important;
+    }
+
+    .sidebar-title {
+        color: var(--text-secondary);
+        font-size: 11px;
         font-weight: 700;
-        margin-top: 10px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-color);
     }
 
-    .rul-label {
-        font-size: 18px;
-        color: #aaa;
-        margin-top: 5px;
+    .sidebar-section {
+        margin: 24px 0;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--border-color);
     }
+
+    .sidebar-metric-label {
+        color: var(--text-secondary);
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+    }
+
+    .sidebar-metric-value {
+        color: var(--text-primary);
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+
+    /* KPI Status Boxes */
+    .kpi-box {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 2px;
+        padding: 20px 24px;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .kpi-label {
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+    }
+
+    .kpi-value {
+        color: var(--text-primary);
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .kpi-value.success { color: var(--success); }
+    .kpi-value.warning { color: var(--warning); }
+    .kpi-value.danger { color: var(--danger); }
 
     /* Section headers */
-    .section-header {
-        color: #ffffff;
-        font-size: 24px;
-        font-weight: 600;
-        margin-top: 40px;
-        margin-bottom: 20px;
-        border-left: 4px solid #00d4ff;
-        padding-left: 15px;
+    .section-title {
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin: 32px 0 16px 0;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-color);
     }
 
-    /* Metrics */
-    .stMetric {
-        background-color: #1e2130;
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #2e3347;
+    /* Chart containers */
+    .chart-container {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 2px;
+        padding: 20px;
+        margin-bottom: 24px;
     }
 
-    /* Sidebar styling */
-    .css-1d391kg {
-        background-color: #1a1d2e;
+    .chart-title {
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+        padding-left: 10px;
+    }
+
+    /* Fleet table styling */
+    .fleet-table {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 2px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    /* Override Streamlit table styling */
+    [data-testid="stDataFrame"] {
+        background-color: var(--bg-surface) !important;
+    }
+
+    [data-testid="stDataFrame"] table {
+        background-color: var(--bg-surface) !important;
+        color: var(--text-primary) !important;
+        font-size: 12px !important;
+    }
+
+    [data-testid="stDataFrame"] thead tr th {
+        background-color: #0a0f1c !important;
+        color: var(--text-secondary) !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        border-bottom: 1px solid var(--border-color) !important;
+        padding: 12px 16px !important;
+    }
+
+    [data-testid="stDataFrame"] tbody tr td {
+        border-bottom: 1px solid #0f1521 !important;
+        padding: 10px 16px !important;
+        color: var(--text-primary) !important;
     }
 
     /* Footer */
-    .footer {
+    .enterprise-footer {
         text-align: center;
-        padding: 30px;
-        color: #888;
-        font-size: 14px;
-        border-top: 2px solid #2e3347;
-        margin-top: 60px;
-        background-color: #0a0c10;
+        padding: 24px;
+        color: #2d3f54;
+        font-size: 10px;
+        letter-spacing: 1px;
+        border-top: 1px solid var(--border-color);
+        margin-top: 40px;
     }
 
-    .footer-title {
-        font-weight: 700;
-        color: #00d4ff;
-        margin-bottom: 10px;
+    /* Override Streamlit selectbox */
+    .stSelectbox [data-baseweb="select"] {
+        background-color: var(--bg-surface) !important;
+        border-color: var(--border-color) !important;
+    }
+
+    /* Content padding */
+    .content-wrapper {
+        padding: 0 32px 32px 32px;
     }
     </style>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# DATA LOADING (CACHED)
+# DATA LOADING
 # ============================================================================
 
 @st.cache_data
@@ -157,337 +288,350 @@ def load_model_and_scaler():
     """Load trained XGBoost model and scaler."""
     try:
         models_dir = Path('models')
-
-        # Load model
         with open(models_dir / 'xgboost_model.pkl', 'rb') as f:
             model = pickle.load(f)
-
-        # Load scaler
         with open(models_dir / 'scaler.pkl', 'rb') as f:
             scaler = pickle.load(f)
-
         return model, scaler
-
     except FileNotFoundError as e:
-        st.error(f"❌ Error: Model files not found. Please run training first.")
+        st.error(f"Error: Model files not found. Please run training first.")
         st.stop()
 
 @st.cache_data
 def load_test_dataset():
     """Load and prepare test dataset with predictions."""
     try:
-        # Load raw data
         _, test_df, test_rul_df = load_data('data/')
-
-        # Load model and scaler
         model, scaler = load_model_and_scaler()
 
-        # Prepare features manually (simplified version)
         from feature_engineering import prepare_features
         X_train, y_train, X_test, test_rul, _, feature_names = prepare_features('data/')
 
-        # Generate predictions for all test cycles
         all_predictions = model.predict(X_test)
         all_predictions = np.maximum(all_predictions, 0)
-
-        # Add predictions to test dataframe
         test_df['predicted_RUL'] = all_predictions
 
-        # Get last prediction per engine
+        # Get predictions per engine
         engine_predictions = {}
         engine_actuals = {}
+        engine_cycles = {}
         current_idx = 0
 
         for unit_id in sorted(test_df['unit_id'].unique()):
             unit_mask = test_df['unit_id'] == unit_id
             unit_cycle_count = unit_mask.sum()
 
-            # Get last prediction for this engine
             last_pred = all_predictions[current_idx + unit_cycle_count - 1]
             engine_predictions[unit_id] = last_pred
 
-            # Map to actual RUL (index-based)
             engine_idx = list(sorted(test_df['unit_id'].unique())).index(unit_id)
             engine_actuals[unit_id] = test_rul[engine_idx]
+            engine_cycles[unit_id] = unit_cycle_count
 
             current_idx += unit_cycle_count
 
-        return test_df, engine_predictions, engine_actuals
+        return test_df, engine_predictions, engine_actuals, engine_cycles
 
     except Exception as e:
-        st.error(f"❌ Error loading data: {e}")
+        st.error(f"Error loading data: {e}")
         st.stop()
 
 # ============================================================================
-# HELPER FUNCTIONS
+# VISUALIZATION FUNCTIONS
 # ============================================================================
 
-def get_health_status(rul):
-    """Determine health status based on RUL."""
+def get_status_class(rul):
+    """Determine status class based on RUL."""
     if rul > 50:
-        return "HEALTHY", "badge-healthy", "#00C853"
+        return "HEALTHY", "success"
     elif 20 <= rul <= 50:
-        return "MONITOR", "badge-monitor", "#FF9800"
+        return "MONITOR", "warning"
     else:
-        return "CRITICAL", "badge-critical", "#F44336"
+        return "CRITICAL", "danger"
 
-def plot_sensor_degradation(engine_data):
-    """Plot sensor readings over time for selected engine."""
+def plot_sensor_trends(engine_data):
+    """Sensor trend analysis chart with rolling mean smoothing."""
     fig = go.Figure()
 
-    # Plot key sensors
     sensors = ['sensor_2', 'sensor_3', 'sensor_4']
-    colors = ['#00d4ff', '#ff6b9d', '#ffd700']
+    colors = ['#1e90ff', '#4db8ff', '#7dd3ff']
 
     for sensor, color in zip(sensors, colors):
         if sensor in engine_data.columns:
-            # Normalize sensor values for better visualization
-            values = engine_data[sensor].values
+            # Apply rolling mean with window=5 for smooth industrial appearance
+            values = engine_data[sensor].rolling(window=5, min_periods=1).mean().values
             normalized = (values - values.min()) / (values.max() - values.min() + 1e-8)
 
             fig.add_trace(go.Scatter(
                 x=engine_data['cycle'],
                 y=normalized,
                 mode='lines',
-                name=sensor.replace('_', ' ').title(),
-                line=dict(color=color, width=2.5),
+                name=sensor.upper().replace('_', ' '),
+                line=dict(color=color, width=2),
                 hovertemplate='Cycle: %{x}<br>Value: %{y:.3f}<extra></extra>'
             ))
 
     fig.update_layout(
-        title={
-            'text': "Sensor Degradation Over Time",
-            'font': {'size': 20, 'color': 'white'}
-        },
-        xaxis_title="Flight Cycles",
-        yaxis_title="Normalized Sensor Value",
-        template="plotly_dark",
-        height=450,
+        plot_bgcolor='#0c1220',
+        paper_bgcolor='#0c1220',
+        font=dict(color='#6b7f94', size=10, family='system-ui'),
+        height=350,
+        margin=dict(l=40, r=20, t=10, b=40),
         hovermode='x unified',
+        showlegend=True,
         legend=dict(
             orientation="h",
-            yanchor="bottom",
-            y=1.02,
+            yanchor="top",
+            y=-0.15,
             xanchor="center",
             x=0.5,
-            bgcolor="rgba(0,0,0,0.5)"
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(size=9, color='#6b7f94')
         ),
-        plot_bgcolor='#1a1d2e',
-        paper_bgcolor='#0e1117',
+        xaxis=dict(
+            gridcolor='#0f1a2e',
+            gridwidth=1,
+            showline=False,
+            zeroline=False,
+            tickfont=dict(size=9, color='#6b7f94'),
+            title=dict(text="Flight Cycles", font=dict(size=10, color='#6b7f94'))
+        ),
+        yaxis=dict(
+            gridcolor='#0f1a2e',
+            gridwidth=1,
+            showline=False,
+            zeroline=False,
+            tickfont=dict(size=9, color='#6b7f94'),
+            title=dict(text="Normalized", font=dict(size=10, color='#6b7f94'))
+        )
     )
 
     return fig
 
-def plot_fleet_overview(engine_predictions):
-    """Create bar chart showing RUL distribution across fleet."""
-    # Prepare data
-    units = sorted(engine_predictions.keys())
-    ruls = [engine_predictions[u] for u in units]
+def plot_degradation_trajectory(engine_data, predicted_rul):
+    """Degradation trajectory showing RUL over operational cycles."""
+    fig = go.Figure()
 
-    # Assign colors based on health status
+    # Calculate RUL at each cycle (reverse order from current)
+    cycles = engine_data['cycle'].values
+    max_cycle = cycles.max()
+
+    # Create trajectory (predicted RUL decreases linearly for visualization)
+    rul_trajectory = []
+    for cycle in cycles:
+        remaining_cycles = max_cycle - cycle
+        trajectory_rul = predicted_rul + remaining_cycles
+        rul_trajectory.append(trajectory_rul)
+
+    # Color segments based on thresholds
     colors = []
-    for rul in ruls:
+    for rul in rul_trajectory:
         if rul > 50:
-            colors.append('#00C853')  # Green
+            colors.append('#00875a')  # Green
         elif 20 <= rul <= 50:
-            colors.append('#FF9800')  # Orange
+            colors.append('#ff8c00')  # Amber
         else:
-            colors.append('#F44336')  # Red
+            colors.append('#d32f2f')  # Red
 
-    fig = go.Figure(data=[
-        go.Bar(
-            x=units,
-            y=ruls,
-            marker_color=colors,
-            text=[f'{r:.0f}' for r in ruls],
-            textposition='outside',
-            hovertemplate='Engine %{x}<br>RUL: %{y:.0f} cycles<extra></extra>'
-        )
-    ])
+    fig.add_trace(go.Scatter(
+        x=cycles,
+        y=rul_trajectory,
+        mode='lines',
+        line=dict(color='#1e90ff', width=2.5),
+        fill='tozeroy',
+        fillcolor='rgba(30, 144, 255, 0.1)',
+        hovertemplate='Cycle: %{x}<br>RUL: %{y:.0f}<extra></extra>'
+    ))
 
-    # Add threshold lines
-    fig.add_hline(y=50, line_dash="dash", line_color="#00C853",
-                  annotation_text="Healthy Threshold", annotation_position="right")
-    fig.add_hline(y=20, line_dash="dash", line_color="#F44336",
-                  annotation_text="Critical Threshold", annotation_position="right")
+    # Threshold lines
+    fig.add_hline(y=50, line_dash="dot", line_color="#00875a", line_width=1,
+                  annotation_text="HEALTHY THRESHOLD", annotation_position="right",
+                  annotation=dict(font=dict(size=8, color='#6b7f94')))
+    fig.add_hline(y=20, line_dash="dot", line_color="#d32f2f", line_width=1,
+                  annotation_text="CRITICAL THRESHOLD", annotation_position="right",
+                  annotation=dict(font=dict(size=8, color='#6b7f94')))
 
     fig.update_layout(
-        title={
-            'text': "Fleet Health Overview - All 100 Engines",
-            'font': {'size': 20, 'color': 'white'}
-        },
-        xaxis_title="Engine Unit ID",
-        yaxis_title="Remaining Useful Life (cycles)",
-        template="plotly_dark",
-        height=500,
+        plot_bgcolor='#0c1220',
+        paper_bgcolor='#0c1220',
+        font=dict(color='#6b7f94', size=10, family='system-ui'),
+        height=350,
+        margin=dict(l=40, r=20, t=10, b=40),
         showlegend=False,
-        plot_bgcolor='#1a1d2e',
-        paper_bgcolor='#0e1117',
         xaxis=dict(
-            tickmode='linear',
-            tick0=1,
-            dtick=5
+            gridcolor='#0f1a2e',
+            gridwidth=1,
+            showline=False,
+            zeroline=False,
+            tickfont=dict(size=9, color='#6b7f94'),
+            title=dict(text="Flight Cycles", font=dict(size=10, color='#6b7f94'))
+        ),
+        yaxis=dict(
+            gridcolor='#0f1a2e',
+            gridwidth=1,
+            showline=False,
+            zeroline=False,
+            tickfont=dict(size=9, color='#6b7f94'),
+            title=dict(text="Remaining Useful Life (cycles)", font=dict(size=10, color='#6b7f94'))
         )
     )
 
     return fig
 
 # ============================================================================
-# MAIN DASHBOARD
+# MAIN APPLICATION
 # ============================================================================
 
 def main():
     """Main dashboard application."""
 
-    # ========================================================================
-    # HEADER
-    # ========================================================================
-    st.markdown('<div class="main-title">✈️ Aircraft Engine Health Monitor</div>',
-                unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">NASA C-MAPS Turbofan Predictive Maintenance</div>',
-                unsafe_allow_html=True)
-
-    # ========================================================================
-    # LOAD DATA
-    # ========================================================================
-    with st.spinner("🔄 Loading model and data..."):
-        test_df, engine_predictions, engine_actuals = load_test_dataset()
-
-    # ========================================================================
-    # SIDEBAR
-    # ========================================================================
-    st.sidebar.markdown("## 🎛️ Control Panel")
-    st.sidebar.markdown("---")
-
-    # Engine selector
-    st.sidebar.markdown("### Select Engine")
-    available_engines = sorted(engine_predictions.keys())
-    selected_engine = st.sidebar.selectbox(
-        "Engine Unit ID",
-        available_engines,
-        format_func=lambda x: f"Engine #{x}",
-        label_visibility="collapsed"
-    )
-
-    st.sidebar.markdown("---")
-
-    # Model metrics
-    st.sidebar.markdown("### 📊 Model Performance")
-    st.sidebar.metric("RMSE", "18.90 cycles", help="Root Mean Squared Error")
-    st.sidebar.metric("R² Score", "0.78", help="Coefficient of Determination")
-
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### ℹ️ About")
-    st.sidebar.info(
-        "This dashboard predicts remaining useful life (RUL) of turbofan engines "
-        "using machine learning on NASA C-MAPS sensor data."
-    )
-
-    # ========================================================================
-    # MAIN CONTENT
-    # ========================================================================
-
-    # Get data for selected engine
-    engine_data = test_df[test_df['unit_id'] == selected_engine].copy()
-    predicted_rul = engine_predictions[selected_engine]
-    actual_rul = engine_actuals[selected_engine]
-
-    # ------------------------------------------------------------------------
-    # SECTION 1: HEALTH STATUS
-    # ------------------------------------------------------------------------
-    st.markdown('<div class="section-header">🩺 Engine Health Status</div>',
-                unsafe_allow_html=True)
-
-    status_text, status_class, status_color = get_health_status(predicted_rul)
-
-    # Create centered health badge
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown(f"""
-            <div class="health-container">
-                <div class="health-badge {status_class}">
-                    {status_text}
-                </div>
-                <div class="rul-value" style="color: {status_color};">
-                    {predicted_rul:.0f} Cycles
-                </div>
-                <div class="rul-label">
-                    Predicted Remaining Useful Life
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # Quick metrics
-    st.markdown("")
-    metric1, metric2, metric3, metric4 = st.columns(4)
-
-    with metric1:
-        st.metric("Predicted RUL", f"{predicted_rul:.0f} cycles")
-
-    with metric2:
-        st.metric("Actual RUL", f"{actual_rul:.0f} cycles")
-
-    with metric3:
-        error = abs(predicted_rul - actual_rul)
-        st.metric("Prediction Error", f"{error:.1f} cycles")
-
-    with metric4:
-        current_cycle = engine_data['cycle'].max()
-        st.metric("Total Cycles", f"{current_cycle}")
-
-    # ------------------------------------------------------------------------
-    # SECTION 2: DEGRADATION CURVE
-    # ------------------------------------------------------------------------
-    st.markdown('<div class="section-header">📉 Sensor Degradation Analysis</div>',
-                unsafe_allow_html=True)
-
-    sensor_fig = plot_sensor_degradation(engine_data)
-    st.plotly_chart(sensor_fig, use_container_width=True)
-
-    # ------------------------------------------------------------------------
-    # SECTION 3: FLEET OVERVIEW
-    # ------------------------------------------------------------------------
-    st.markdown('<div class="section-header">🛠️ Fleet Health Overview</div>',
-                unsafe_allow_html=True)
-
-    # Fleet statistics
-    healthy_count = sum(1 for rul in engine_predictions.values() if rul > 50)
-    monitor_count = sum(1 for rul in engine_predictions.values() if 20 <= rul <= 50)
-    critical_count = sum(1 for rul in engine_predictions.values() if rul < 20)
-
-    stat1, stat2, stat3, stat4 = st.columns(4)
-
-    with stat1:
-        st.metric("Total Engines", len(engine_predictions))
-
-    with stat2:
-        st.metric("Healthy", healthy_count, delta=None, delta_color="normal")
-
-    with stat3:
-        st.metric("Monitor", monitor_count, delta=None, delta_color="normal")
-
-    with stat4:
-        st.metric("Critical", critical_count, delta=None, delta_color="inverse")
-
-    # Fleet bar chart
-    fleet_fig = plot_fleet_overview(engine_predictions)
-    st.plotly_chart(fleet_fig, use_container_width=True)
-
-    # ========================================================================
-    # FOOTER
-    # ========================================================================
+    # Header
     st.markdown("""
-        <div class="footer">
-            <div class="footer-title">Powered by NASA C-MAPS Dataset</div>
-            Built by <strong>Rayhane Nouri</strong>, ENSIT Tunisia<br>
-            Commercial Modular Aero-Propulsion System Simulation | FD001 Dataset<br>
-            XGBoost Regression Model for Predictive Maintenance
+        <div class="enterprise-header">
+            <div class="header-title">ENGINE HEALTH MONITOR</div>
+            <div class="system-status">
+                <div class="status-dot"></div>
+                SYSTEM ONLINE
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
-# ============================================================================
-# RUN APP
-# ============================================================================
+    # Load data
+    with st.spinner("Loading system..."):
+        test_df, engine_predictions, engine_actuals, engine_cycles = load_test_dataset()
+
+    # Sidebar
+    st.sidebar.markdown('<div class="sidebar-title">CONTROL PANEL</div>', unsafe_allow_html=True)
+
+    available_engines = sorted(engine_predictions.keys())
+    selected_engine = st.sidebar.selectbox(
+        "Select Engine",
+        available_engines,
+        format_func=lambda x: f"Engine {x:03d}",
+        label_visibility="collapsed"
+    )
+
+    st.sidebar.markdown('<div class="sidebar-section"></div>', unsafe_allow_html=True)
+
+    # Sidebar metrics
+    st.sidebar.markdown('<div class="sidebar-metric-label">RMSE</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="sidebar-metric-value">18.90 cycles</div>', unsafe_allow_html=True)
+
+    st.sidebar.markdown('<div class="sidebar-metric-label">R2 SCORE</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="sidebar-metric-value">0.78</div>', unsafe_allow_html=True)
+
+    st.sidebar.markdown('<div class="sidebar-metric-label">ACCURACY (+/-20)</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="sidebar-metric-value">77%</div>', unsafe_allow_html=True)
+
+    st.sidebar.markdown('<div class="sidebar-section"></div>', unsafe_allow_html=True)
+
+    st.sidebar.markdown('<div class="sidebar-metric-label">DATASET</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div style="color: #6b7f94; font-size: 11px; line-height: 1.6;">NASA C-MAPS FD001<br>100 engines<br>21 sensors</div>', unsafe_allow_html=True)
+
+    # Main content wrapper
+    st.markdown('<div class="content-wrapper">', unsafe_allow_html=True)
+
+    # Get selected engine data
+    engine_data = test_df[test_df['unit_id'] == selected_engine].copy()
+    predicted_rul = engine_predictions[selected_engine]
+    actual_rul = engine_actuals[selected_engine]
+    total_cycles = engine_cycles[selected_engine]
+    error = abs(predicted_rul - actual_rul)
+
+    status_text, status_class = get_status_class(predicted_rul)
+
+    # ROW 1: KPI Status Boxes
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.markdown(f"""
+            <div class="kpi-box">
+                <div class="kpi-label">ENGINE STATUS</div>
+                <div class="kpi-value {status_class}">{status_text}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+            <div class="kpi-box">
+                <div class="kpi-label">PREDICTED RUL</div>
+                <div class="kpi-value">{predicted_rul:.0f} CYC</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+            <div class="kpi-box">
+                <div class="kpi-label">ACTUAL RUL</div>
+                <div class="kpi-value">{actual_rul:.0f} CYC</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        st.markdown(f"""
+            <div class="kpi-box">
+                <div class="kpi-label">PREDICTION ERROR</div>
+                <div class="kpi-value">{error:.1f} CYC</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # ROW 2: Charts
+    st.markdown('<div style="margin-top: 32px;"></div>', unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">SENSOR TREND ANALYSIS</div>', unsafe_allow_html=True)
+        sensor_fig = plot_sensor_trends(engine_data)
+        st.plotly_chart(sensor_fig, use_container_width=True, config={'displayModeBar': False, 'displaylogo': False})
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">DEGRADATION TRAJECTORY</div>', unsafe_allow_html=True)
+        trajectory_fig = plot_degradation_trajectory(engine_data, predicted_rul)
+        st.plotly_chart(trajectory_fig, use_container_width=True, config={'displayModeBar': False, 'displaylogo': False})
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # ROW 3: Fleet Status Table
+    st.markdown('<div style="margin-top: 32px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="fleet-table">', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">FLEET STATUS OVERVIEW</div>', unsafe_allow_html=True)
+
+    # Build fleet dataframe
+    fleet_data = []
+    for engine_id in sorted(engine_predictions.keys()):
+        pred_rul = engine_predictions[engine_id]
+        cycles_run = engine_cycles[engine_id]
+        status, _ = get_status_class(pred_rul)
+
+        fleet_data.append({
+            'Engine ID': f'{engine_id:03d}',
+            'Predicted RUL': f'{pred_rul:.0f}',
+            'Status': status,
+            'Cycles Run': cycles_run
+        })
+
+    fleet_df = pd.DataFrame(fleet_data)
+
+    # Display table with custom styling
+    st.dataframe(
+        fleet_df,
+        use_container_width=True,
+        height=400,
+        hide_index=True
+    )
+
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)  # Close content wrapper
+
+    # Footer
+    st.markdown("""
+        <div class="enterprise-footer">
+            ENGINE HEALTH MONITOR v1.0 | NASA C-MAPS FD001 | XGBOOST REGRESSION
+        </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
