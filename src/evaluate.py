@@ -8,7 +8,7 @@ import pickle
 import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn.metrics import mean_squared_error, r2_score
-from feature_engineering import prepare_features
+from src.feature_engineering import prepare_features
 
 
 def evaluate_model(data_path='data/'):
@@ -34,7 +34,7 @@ def evaluate_model(data_path='data/'):
     X_train, y_train, X_test, test_rul, _, feature_names = prepare_features(data_path)
 
     # generate predictions
-    from data_loader import load_data
+    from src.data_loader import load_data
     _, test_df, _ = load_data(data_path)
 
     all_predictions = model.predict(X_test)

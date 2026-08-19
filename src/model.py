@@ -8,7 +8,7 @@ import pickle
 from pathlib import Path
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error, r2_score
-from feature_engineering import prepare_features
+from src.feature_engineering import prepare_features
 
 
 def train_model(data_path='data/'):
@@ -44,7 +44,7 @@ def train_model(data_path='data/'):
 
     # get last cycle prediction for each engine
     # this is what we compare against ground truth
-    from data_loader import load_data
+    from src.data_loader import load_data
     _, test_df, _ = load_data(data_path)
 
     predictions = []

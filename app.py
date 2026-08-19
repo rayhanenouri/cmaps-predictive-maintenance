@@ -10,7 +10,7 @@ import sys
 
 # Add src to path
 sys.path.append('src')
-from data_loader import load_data
+from src.data_loader import load_data
 
 st.set_page_config(
     page_title="Engine Health Monitor",
@@ -288,7 +288,7 @@ def load_test_dataset():
         _, test_df, test_rul_df = load_data('data/')
         model, scaler = load_model_and_scaler()
 
-        from feature_engineering import prepare_features
+        from src.feature_engineering import prepare_features
         X_train, y_train, X_test, test_rul, _, feature_names = prepare_features('data/')
 
         all_predictions = model.predict(X_test)
