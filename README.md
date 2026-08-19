@@ -76,8 +76,8 @@ cmaps-predictive-maintenance/
 ```bash
 git clone https://github.com/rayhanenouri/cmaps-predictive-maintenance
 cd cmaps-predictive-maintenance
-python -m venv venv
-source venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
 # Add NASA C-MAPS FD001 files to data/
