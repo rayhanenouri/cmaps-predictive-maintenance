@@ -10,8 +10,7 @@ from pathlib import Path
 
 def load_data(data_path: str = "."):
     """Load C-MAPS FD001 splits and compute RUL labels.
-
-    Returns train_df with RUL column, test_df, and ground truth test_rul.
+       Returns train_df with RUL column, test_df, and ground truth test_rul.
     """
 
     data_path = Path(data_path)

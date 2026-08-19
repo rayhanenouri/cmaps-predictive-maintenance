@@ -13,8 +13,7 @@ from feature_engineering import prepare_features
 
 def train_model(data_path='data/'):
     """Train XGBoost regressor and save to models directory.
-
-    Returns model, predictions, test_rul, and feature_names.
+       Returns model, predictions, test_rul, and feature_names.
     """
 
     print("\nmodel training\n")

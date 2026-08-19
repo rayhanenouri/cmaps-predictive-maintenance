@@ -11,8 +11,7 @@ from data_loader import load_data
 
 def prepare_features(data_path='data/'):
     """Complete feature engineering pipeline.
-
-    Returns X_train, y_train, X_test, test_rul, scaler, and feature names.
+       Returns X_train, y_train, X_test, test_rul, scaler, and feature names.
     """
 
     print("\nfeature engineering pipeline\n")
@@ -73,8 +72,7 @@ def prepare_features(data_path='data/'):
 
 def _add_rolling_features(df, sensor_cols):
     """Add rolling mean and std for each sensor.
-
-    Rolling statistics smooth out noise and capture degradation trends.
+       Rolling statistics smooth out noise and capture degradation trends.
     """
     df = df.copy()
 
