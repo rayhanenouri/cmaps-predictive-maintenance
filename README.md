@@ -40,7 +40,7 @@ NASA C-MAPS FD001 dataset. 100 engines instrumented with 21 sensors across full 
 
 ### Feature Engineering
 
-Variance analysis removed 10 constant sensors. 11 informative sensors retained. Rolling statistics (mean and std, windows 5 and 10 cycles) computed per engine unit to capture temporal degradation patterns. MinMaxScaler fitted on training data only — no data leakage.
+Variance analysis removed 13 constant sensors. 11 informative sensors retained. Rolling statistics (mean and std, windows 5 and 10 cycles) computed per engine unit to capture temporal degradation patterns. MinMaxScaler fitted on training data only — no data leakage.
 
 
 ### Model
@@ -76,8 +76,8 @@ cmaps-predictive-maintenance/
 ```bash
 git clone https://github.com/rayhanenouri/cmaps-predictive-maintenance
 cd cmaps-predictive-maintenance
-python -m venv .venv
-source .venv/bin/activate
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 
 # Add NASA C-MAPS FD001 files to data/
