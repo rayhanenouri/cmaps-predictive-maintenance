@@ -89,7 +89,7 @@ NASA Commercial Modular Aero-Propulsion System Simulation (C-MAPS). FD001 subset
 
 **Rayhane Nouri**  
 Electrical Engineering Student, ENSIT Tunisia  
-[LinkedIn](https://linkedin.com/in/rayhanenouri) · [GitHub](https://github.com/rayhanenouri)
+[LinkedIn](https://www.linkedin.com/in/rayhane-nouri-es-engineer/) · [GitHub](https://github.com/rayhanenouri)
 
 ---
 
