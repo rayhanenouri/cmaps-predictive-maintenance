@@ -1,7 +1,7 @@
 # Data files
 data/*.txt
 data/*.csv
-*.pkl
+
 *.h5
 *.joblib
 
@@ -39,7 +39,7 @@ Thumbs.db
 # Model artifacts
 model.pkl
 *.model
-models/*.pkl
+models/
 
 # Plots
 *.png
