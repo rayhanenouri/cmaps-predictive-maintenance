@@ -22,16 +22,14 @@ This system implements a supervised regression model for turbofan engine remaini
 | Metric | Value |
 |--------|-------|
 | RMSE | 18.90 cycles |
-| R2 Score | 0.78 |
+| R² Score | 0.78 |
 | Within ±10 cycles | 55% |
 | Within ±20 cycles | 77% |
 | Training samples | 20,631 |
 | Test engines | 100 |
 | Feature count | 55 |
 
-## Live Demo
 
-[Engine Health Monitor — Live Dashboard](https://cmaps-predictive-maintenance.streamlit.app)
 
 ## Results
 
