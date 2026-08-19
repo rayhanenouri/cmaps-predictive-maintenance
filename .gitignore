@@ -37,9 +37,6 @@ Thumbs.db
 *.ipynb_checkpoints
 
 # Model artifacts
-model.pkl
-*.model
-models/
 
 # Plots
 *.png
