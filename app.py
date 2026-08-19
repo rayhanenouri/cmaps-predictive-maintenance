@@ -1,8 +1,4 @@
-"""
-Engine Health Monitor
-Industrial MRO Dashboard - NASA C-MAPS Predictive Maintenance
-Design Reference: AVIATAR (Lufthansa Technik), Skywise (Airbus)
-"""
+"""Engine health monitoring dashboard for NASA C-MAPS RUL predictions."""
 
 import streamlit as st
 import pandas as pd
@@ -16,19 +12,11 @@ import sys
 sys.path.append('src')
 from data_loader import load_data
 
-# ============================================================================
-# PAGE CONFIGURATION
-# ============================================================================
-
 st.set_page_config(
     page_title="Engine Health Monitor",
     page_icon="✈",
     layout="wide"
 )
-
-# ============================================================================
-# ENTERPRISE DESIGN SYSTEM - AEROSPACE MRO THEME
-# ============================================================================
 
 st.markdown("""
     <style>
@@ -279,13 +267,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ============================================================================
-# DATA LOADING
-# ============================================================================
-
 @st.cache_data
 def load_model_and_scaler():
-    """Load trained XGBoost model and scaler."""
+    """load persisted model and scaler from training run"""
     try:
         models_dir = Path('models')
         with open(models_dir / 'xgboost_model.pkl', 'rb') as f:
@@ -299,7 +283,7 @@ def load_model_and_scaler():
 
 @st.cache_data
 def load_test_dataset():
-    """Load and prepare test dataset with predictions."""
+    """run feature pipeline and generate per-engine predictions"""
     try:
         _, test_df, test_rul_df = load_data('data/')
         model, scaler = load_model_and_scaler()
@@ -336,12 +320,8 @@ def load_test_dataset():
         st.error(f"Error loading data: {e}")
         st.stop()
 
-# ============================================================================
-# VISUALIZATION FUNCTIONS
-# ============================================================================
-
 def get_status_class(rul):
-    """Determine status class based on RUL."""
+    """map predicted RUL to operational status tier"""
     if rul > 50:
         return "HEALTHY", "success"
     elif 20 <= rul <= 50:
@@ -350,7 +330,7 @@ def get_status_class(rul):
         return "CRITICAL", "danger"
 
 def plot_sensor_trends(engine_data):
-    """Sensor trend analysis chart with rolling mean smoothing."""
+    """plot normalized sensor readings over flight cycles"""
     fig = go.Figure()
 
     sensors = ['sensor_2', 'sensor_3', 'sensor_4']
@@ -358,7 +338,7 @@ def plot_sensor_trends(engine_data):
 
     for sensor, color in zip(sensors, colors):
         if sensor in engine_data.columns:
-            # Apply rolling mean with window=5 for smooth industrial appearance
+            # smooth sensor noise before plotting
             values = engine_data[sensor].rolling(window=5, min_periods=1).mean().values
             normalized = (values - values.min()) / (values.max() - values.min() + 1e-8)
 
@@ -409,7 +389,7 @@ def plot_sensor_trends(engine_data):
     return fig
 
 def plot_degradation_trajectory(engine_data, predicted_rul):
-    """Degradation trajectory showing RUL over operational cycles."""
+    """estimated RUL trajectory from current cycle to end of life"""
     fig = go.Figure()
 
     # Calculate RUL at each cycle (reverse order from current)
@@ -478,12 +458,8 @@ def plot_degradation_trajectory(engine_data, predicted_rul):
 
     return fig
 
-# ============================================================================
-# MAIN APPLICATION
-# ============================================================================
-
 def main():
-    """Main dashboard application."""
+    """entry point"""
 
     # Header
     st.markdown("""

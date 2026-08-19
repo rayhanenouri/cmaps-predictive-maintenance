@@ -6,7 +6,7 @@ Removes constant sensors and adds rolling statistics to capture degradation tren
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from data_loader import load_data
+from src.data_loader import load_data
 
 
 def prepare_features(data_path='data/'):
