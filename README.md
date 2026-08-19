@@ -7,7 +7,7 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.x-red)
 ![Dataset](https://img.shields.io/badge/Dataset-NASA_CMAPS-green)
 
-**Live Dashboard:** [cmaps-predictive-maintenance.streamlit.app](https://cmaps-predictive-maintenance.streamlit.app)
+**Live Demo:** [cmaps-predictive-maintenance.streamlit.app](https://cmaps-predictive-maintenance.streamlit.app)
 
 ## Motivation
 
