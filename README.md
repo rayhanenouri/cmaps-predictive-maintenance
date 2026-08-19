@@ -26,6 +26,12 @@ This system implements a supervised regression model for turbofan engine remaini
 | Test engines | 100 |
 | Feature count | 55 |
 
+## Results
+
+![Predicted vs Actual RUL](docs/predicted_vs_actual.png)
+
+![Degradation Curves](docs/degradation_curves.png)
+
 ## Methodology
 
 ### Data Engineering
