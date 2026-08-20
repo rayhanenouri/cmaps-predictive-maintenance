@@ -79,7 +79,7 @@ cmaps-predictive-maintenance/
 ## Setup
 
 ```bash
-git clone https://cmaps-predictive-maintenance.streamlit.app
+git clone https://github.com/rayhanenouri/cmaps-predictive-maintenance
 cd cmaps-predictive-maintenance
 python -m venv .venv
 source .venv/bin/activate
