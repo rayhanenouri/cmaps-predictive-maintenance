@@ -60,6 +60,14 @@ Streamlit dashboard with real-time engine health status, sensor trend analysis, 
 
 This project implements the same fundamental approach used in production systems like AVIATAR by Lufthansa Technik, which serves 120+ customers and 11,000+ aircraft with predictive health analytics. While AVIATAR operates at fleet scale with live telemetry integration, this research implementation demonstrates the core methodology: sensor-based degradation modeling and RUL forecasting using supervised learning on run-to-failure data. The techniques applied here — temporal feature engineering, tree-based regression, and condition-based monitoring — are directly transferable to operational MRO decision support systems.
 
+## Project Management
+
+I planned the work with GitHub milestones, then moved the backlog to Jira (6 epics, 49 stories) and documented each phase in Confluence.
+
+![Jira epics](docs/jira_epics.png)
+
+![Confluence documentation](docs/confluence_workflow.png)
+
 ## Repository Structure
 
 ```
