@@ -15,7 +15,8 @@ from src.data_loader import load_data
 st.set_page_config(
     page_title="Engine Health Monitor",
     page_icon="✈",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 st.markdown("""
@@ -23,9 +24,8 @@ st.markdown("""
     /* Remove all Streamlit default styling */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     .stDeployButton {display: none;}
-
+    
     /* Color system */
     :root {
         --bg-primary: #050810;
@@ -498,6 +498,9 @@ def main():
 
     st.sidebar.markdown('<div class="sidebar-metric-label">ACCURACY (+/-20)</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<div class="sidebar-metric-value">77%</div>', unsafe_allow_html=True)
+
+    st.sidebar.markdown('<div class="sidebar-metric-label">VS. BASELINE (MEAN PREDICTION)</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="sidebar-metric-value">-55% RMSE</div>', unsafe_allow_html=True)
 
     st.sidebar.markdown('<div class="sidebar-section"></div>', unsafe_allow_html=True)
 
