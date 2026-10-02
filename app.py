@@ -24,6 +24,11 @@ st.markdown("""
     /* Remove all Streamlit default styling */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+                [data-testid="stSidebarCollapseButton"] {display: none !important;}
+    [data-testid="stSidebarCollapsedControl"] {display: none !important;}
+    [data-testid="stExpandSidebarButton"] {display: none !important;}
+                [data-testid="stSidebarHeader"] {display: none !important;}
+            
     .stDeployButton {display: none;}
     
     /* Color system */
@@ -57,10 +62,7 @@ st.markdown("""
     }
 
     /* Typography */
-    * {
-        font-family: system-ui, -apple-system, sans-serif !important;
-    }
-
+    
     /* Header - full width black bar */
     .enterprise-header {
         background-color: #000000;
@@ -70,6 +72,7 @@ st.markdown("""
         justify-content: space-between;
         align-items: center;
         margin-bottom: 24px;
+        
     }
 
     .header-title {
