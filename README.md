@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0-orange)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.x-red)
-![Dataset](https://img.shields.io/badge/Dataset-NASA_CMAPS-green)
+![Dataset](https://img.shields.io/badge/Dataset-NASA_CMAPSS-green)
 
 **Live Demo:** [cmaps-predictive-maintenance app](https://cmaps-predictive-maintenance.onrender.com/)
 
