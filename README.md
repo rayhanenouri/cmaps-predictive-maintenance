@@ -1,6 +1,6 @@
 # ENGINE HEALTH MONITOR
 
-### Turbofan Remaining Useful Life Prediction | NASA C-MAPS FD001
+### Turbofan Remaining Useful Life Prediction | NASA C-MAPSS FD001
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0-orange)
