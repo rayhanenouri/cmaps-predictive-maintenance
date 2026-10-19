@@ -15,7 +15,7 @@ During my aviation maintenance internship at Tunisair Technics, I worked alongsi
 
 ## Technical Overview
 
-This system implements a supervised regression model for turbofan engine remaining useful life (RUL) prediction using NASA CMAPSS Jet Engine Simulated Data. The model processes 21-channel sensor time-series data through variance-based feature selection, temporal aggregation via rolling statistics, and normalization to produce 55 engineered features per observation. An XGBoost regressor trained on 100 run-to-failure engine trajectories predicts RUL with 18.90 cycle RMSE on held-out test engines. A Streamlit-based monitoring interface provides real-time health status visualization, sensor trend analysis, degradation trajectory plotting, and fleet-wide status overview with sortable metrics.
+This system implements a supervised regression model for turbofan engine remaining useful life (RUL) prediction using NASA CMAPSS Jet Engine Simulated Data. The model processes 21-channel sensor time-series data through variance-based feature selection, temporal aggregation via rolling statistics, and normalization to produce 55 engineered features per observation. An XGBoost regressor trained on 100 run-to-failure engine trajectories predicts RUL with 18.90 cycle RMSE on held-out test engines. Complementing the RUL forecasting, an Isolation Forest detector provides unsupervised anomaly identification with 73% precision and 62% recall on near-failure engines. A Streamlit-based monitoring interface provides real-time health status visualization, sensor trend analysis, degradation trajectory plotting, and fleet-wide status overview with sortable metrics.
 
 ## Model Performance
 
@@ -29,7 +29,19 @@ This system implements a supervised regression model for turbofan engine remaini
 | Test engines | 100 |
 | Feature count | 55 |
 
+## Anomaly Detection
 
+In addition to supervised RUL regression, the system incorporates unsupervised anomaly detection via Isolation Forest to identify engines exhibiting unusual sensor degradation patterns. This dual approach provides complementary failure indicators: the RUL model forecasts time-to-failure under nominal degradation trajectories, while the anomaly detector flags deviations from expected sensor behavior that may indicate accelerated wear, instrumentation faults, or off-nominal operating conditions not captured in the training distribution.
+
+The Isolation Forest model (contamination parameter 0.1, 100 estimators) was trained on the same 55-feature representations and evaluated against a binary classification task: engines with actual RUL under 20 cycles labeled as failing-soon. Performance on held-out test engines yielded 62% recall and 73% precision, indicating the model successfully identifies a majority of near-failure cases while maintaining acceptable false positive rate for operational deployment.
+
+| Metric | Value |
+|--------|-------|
+| Precision | 73% |
+| Recall | 62% |
+| F1 Score | 0.67 |
+| Decision Threshold | RUL < 20 cycles |
+| Contamination | 10% |
 
 ## Results
 
@@ -76,7 +88,8 @@ cmaps-predictive-maintenance/
 │   ├── data_loader.py           # Dataset loading and RUL computation
 │   ├── feature_engineering.py   # Sensor selection and rolling features
 │   ├── model.py                 # XGBoost training and evaluation
-│   └── evaluate.py              # Performance metrics and visualizations
+│   ├── evaluate.py              # Performance metrics and visualizations
+│   └── anomaly_detection.py     # Isolation Forest anomaly detection
 ├── app.py                       # Streamlit monitoring dashboard
 ├── data/                        # NASA C-MAPS FD001 files (not tracked)
 ├── models/                      # Trained model artifacts (not tracked)
