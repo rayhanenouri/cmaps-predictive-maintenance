@@ -15,7 +15,7 @@ During my aviation maintenance internship at Tunisair Technics, I worked alongsi
 
 ## Technical Overview
 
-This system implements a supervised regression model for turbofan engine remaining useful life (RUL) prediction using NASA C-MAPS degradation data. The model processes 21-channel sensor time-series data through variance-based feature selection, temporal aggregation via rolling statistics, and normalization to produce 55 engineered features per observation. An XGBoost regressor trained on 100 run-to-failure engine trajectories predicts RUL with 18.90 cycle RMSE on held-out test engines. A Streamlit-based monitoring interface provides real-time health status visualization, sensor trend analysis, degradation trajectory plotting, and fleet-wide status overview with sortable metrics.
+This system implements a supervised regression model for turbofan engine remaining useful life (RUL) prediction using NASA CMAPSS Jet Engine Simulated Data. The model processes 21-channel sensor time-series data through variance-based feature selection, temporal aggregation via rolling statistics, and normalization to produce 55 engineered features per observation. An XGBoost regressor trained on 100 run-to-failure engine trajectories predicts RUL with 18.90 cycle RMSE on held-out test engines. A Streamlit-based monitoring interface provides real-time health status visualization, sensor trend analysis, degradation trajectory plotting, and fleet-wide status overview with sortable metrics.
 
 ## Model Performance
 
@@ -41,11 +41,11 @@ This system implements a supervised regression model for turbofan engine remaini
 
 ### Data Engineering
 
-NASA C-MAPS FD001 dataset. 100 engines instrumented with 21 sensors across full degradation lifecycle. RUL computed as max_cycle - current_cycle, capped at 125 cycles (piece-wise RUL normalization — standard practice in prognostics literature).
+NASA CMAPSS Jet Engine Simulated Data (FD001 dataset), 100 engines instrumented with 21 sensors across full degradation lifecycle. RUL computed as max_cycle - current_cycle, capped at 125 cycles (piece-wise RUL normalization, standard practice in prognostics literature).
 
 ### Feature Engineering
 
-Variance analysis removed 13 constant sensors. 11 informative sensors retained. Rolling statistics (mean and std, windows 5 and 10 cycles) computed per engine unit to capture temporal degradation patterns. MinMaxScaler fitted on training data only — no data leakage.
+Variance analysis removed 13 constant sensors. 11 informative sensors retained. Rolling statistics (mean and std, windows 5 and 10 cycles) computed per engine unit to capture temporal degradation patterns. MinMaxScaler fitted on training data only, no data leakage.
 
 
 ### Model
@@ -54,11 +54,11 @@ XGBoost Regressor. 300 estimators, max_depth 6, learning_rate 0.05. Trained on 2
 
 ### Monitoring Interface
 
-Streamlit dashboard with real-time engine health status, sensor trend analysis, degradation trajectory, and fleet overview table — sortable by remaining useful life.
+Streamlit dashboard with real-time engine health status, sensor trend analysis, degradation trajectory, and fleet overview table - sortable by remaining useful life.
 
 ## Industry Context
 
-This project implements the same fundamental approach used in production systems like AVIATAR by Lufthansa Technik, which serves 120+ customers and 11,000+ aircraft with predictive health analytics. While AVIATAR operates at fleet scale with live telemetry integration, this research implementation demonstrates the core methodology: sensor-based degradation modeling and RUL forecasting using supervised learning on run-to-failure data. The techniques applied here — temporal feature engineering, tree-based regression, and condition-based monitoring — are directly transferable to operational MRO decision support systems.
+This project implements the same fundamental approach used in production systems like AVIATAR by Lufthansa Technik, which serves 120+ customers and 11,000+ aircraft with predictive health analytics. While AVIATAR operates at fleet scale with live telemetry integration, this research implementation demonstrates the core methodology: sensor-based degradation modeling and RUL forecasting using supervised learning on run-to-failure data. The techniques applied here - temporal feature engineering, tree-based regression, and condition-based monitoring - are directly transferable to operational MRO decision support systems.
 
 ## Project Management
 
