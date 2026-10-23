@@ -611,7 +611,7 @@ def main():
     # Footer
     st.markdown("""
         <div class="enterprise-footer">
-            ENGINE HEALTH MONITOR v1.0 | NASA C-MAPS FD001 | XGBOOST REGRESSION
+            ENGINE HEALTH MONITOR v1.0 | NASA C-MAPSS FD001 | XGBOOST REGRESSION
         </div>
     """, unsafe_allow_html=True)
 
